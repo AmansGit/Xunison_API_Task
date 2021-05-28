@@ -3,6 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
 from .models import MovieContainer
+
+from django.core.exceptions import ObjectDoesNotExist
+
 # Create your views here.
 
 import json
@@ -17,36 +20,46 @@ def createNewMovie(request):
 		description = movies['description']
 		dor = datetime.strptime(movies['date_of_release'], '%Y-%m-%d')
 
-		# name = request.body['name']
-		# description = request.body['description']
-		# date_of_release = request.body['date_of_release']
-
-		print("date_of_release:: ", dor)
-		print("name:: ", name)
-
-		c_movie = MovieContainer(name=name, description=description, date_of_release=dor)
-		try:
-			print(c_movie)
-			c_movie.save()			
-			movie_obj = MovieContainer.objects.filter(name=name).first()
-			# response.success('message', data. 200)
+	# ---------- filter-out duplicate data on the basis of movie name ---------------
+		c_movie = MovieContainer.objects.filter(name=name).first()
+		if c_movie is not None:
+			id = c_movie.id
 			response = {
-				"msg": "Created successfully",
-				"status": 200,
+				"msg": "Data is already present in DB, please use UPDATE to change data",
 				"data":{
-						"id": movie_obj.id,
-						"name": movie_obj.name,	
-					}				
+					"id": c_movie.id,
+					"name": c_movie.name,
+					"description": c_movie.description,
+					"date of release": str(c_movie.date_of_release)
+				}
 			}
+			status = 409
 
-		except:
-			response = {
-				"msg": "Something went wrong",
-				"status": 400,
-				"data": None
-			}
+		else:
+			c_movie = MovieContainer(name=name, description=description, date_of_release=dor)
+			try:
+				c_movie.save()
+				movie_obj = MovieContainer.objects.get(id=c_movie.id)
+				# response.success('message', data. 200)
+				response = {
+					"msg": "Created successfully",
+					"data":{
+							"id": movie_obj.id,
+							"name": movie_obj.name,
+							"description": movie_obj.description,
+							"date of release": str(movie_obj.date_of_release)
+						}				
+				}
+				status = 201
 
-	return HttpResponse(json.dumps(response), content_type='text/json')
+			except:
+				response = {
+					"msg": "Something went wrong",
+					"data": None
+				}
+				status = 400
+
+	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
 
 
 def getMovie(request, id=None):
@@ -56,8 +69,6 @@ def getMovie(request, id=None):
 	if request.method == 'GET':
 		try:
 			if id == None:
-
-				print
 				movie_obj = MovieContainer.objects.all()
 				for obj in movie_obj:
 					d = {
@@ -66,42 +77,51 @@ def getMovie(request, id=None):
 					}
 					data.append(d)
 				msg = "All data is extracted"
+				status = 200
 			else:
-				movie_obj = MovieContainer.objects.filter(id=id).first()
+				movie_obj = MovieContainer.objects.get(id=id)
 				print("OBJ:: ", movie_obj)
 				data = {
 					"id": movie_obj.id,
 					"name": movie_obj.name
 				}
 				msg = "One data is extracted"
-		except:
+				status = 200
+
+		except ObjectDoesNotExist:
+			msg = f"Data is not present with id: {id}"
+			data = None
+			status = 404
+		except Exception as e:
 			msg = "Something went wrong."
 			data = None
+			status = 500
 
 	response = {
 		"msg": msg,
 		"data": data
 	}
 
-	return HttpResponse(json.dumps(response), content_type='text/json')
+	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
 
 
-
+@csrf_exempt
 def updateMovie(request, id):
 	response = {}
 	
 	if request.method=='PUT':
 
 		movies = json.loads(request.body)
-		id = movies['id']
+		# id = movies['id']
 		name = movies['name']
 		description = movies['description']
 		dor = movies['date_of_release']
 		try:
-			movie_obj = MovieContainer.objects.filter(id=id).first()
+			movie_obj = MovieContainer.objects.get(id=id)
 			movie_obj.name = name
 			movie_obj.description = description
 			movie_obj.date_of_release = dor
+			movie_obj.save()
 
 			# MovieContainer(name=name, description=description, date_of_release=dor)
 
@@ -112,32 +132,50 @@ def updateMovie(request, id):
 					"name": movie_obj.name
 				}
 			}
-		except:
+			status = 201
+
+		except ObjectDoesNotExist:
+			response = {
+				"msg": f"Data is not present with id: {id}",
+				"data": None
+			}
+			status = 404
+		except Exception as e:
 			response = {
 				"msg": "Not updated",
 				"data": None
 			}
+			status = 500
 
-	return HttpResponse(json.dumps(response), content_type='text/json')
+	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
 
 
-def deleteMovie(request, id):
+@csrf_exempt
+def deleteMovie(request, id=id):
 	response = {}
 	if request.method == 'DELETE':
-		movies = json.loads(request.body)
+		# movies = json.loads(request.body)
 
-		id = movies['id']
-		movie_obj = MovieContainer.objects.get(id=id)
+		# id = movies['id']
 
 		try:
+			movie_obj = MovieContainer.objects.get(id=id)
 			response = {
 				"msg": "Successfully delete",
 				"data": {
 					"id": movie_obj.id,
-					"name": "movie_obj.name"
+					"name": movie_obj.name
 				}
 			}
 			movie_obj.delete()
+			status = 410
+
+		except ObjectDoesNotExist:
+			response = {
+				"msg": f"Data is not present with id: {id}",
+				"data": None
+			}
+			status
 
 		except:
 			response = {
