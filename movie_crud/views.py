@@ -1,63 +1,72 @@
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-
-from .models import MovieContainer
-
-from django.core.exceptions import ObjectDoesNotExist
-
-# Create your views here.
-
 import json
 from datetime import datetime
+
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
+
+from .models import MovieContainer
+from .validations import key_validation
 
 @csrf_exempt
 def createNewMovie(request):
 	response = {}
 	if request.method=='POST':
-		movies = json.loads(request.body)
-		name = movies['name']
-		description = movies['description']
-		dor = datetime.strptime(movies['date_of_release'], '%Y-%m-%d')
+		v_status = True
+		v_msg = ""
+		v_status, v_msg = key_validation(json.loads(request.body))
 
-	# ---------- filter-out duplicate data on the basis of movie name ---------------
-		c_movie = MovieContainer.objects.filter(name=name).first()
-		if c_movie is not None:
-			id = c_movie.id
-			response = {
-				"msg": "Data is already present in DB, please use UPDATE to change data",
-				"data":{
-					"id": c_movie.id,
-					"name": c_movie.name,
-					"description": c_movie.description,
-					"date of release": str(c_movie.date_of_release)
-				}
-			}
-			status = 409
+		if v_status:
+			movies = json.loads(request.body)
+			name = movies['name']
+			description = movies['description']
+			dor = datetime.strptime(movies['date_of_release'], '%Y-%m-%d')
 
-		else:
-			c_movie = MovieContainer(name=name, description=description, date_of_release=dor)
-			try:
-				c_movie.save()
-				movie_obj = MovieContainer.objects.get(id=c_movie.id)
-				# response.success('message', data. 200)
+		# ---------- filter-out duplicate data on the basis of movie name ---------------
+			c_movie = MovieContainer.objects.filter(name=name).first()
+			if c_movie is not None:
+				id = c_movie.id
 				response = {
-					"msg": "Created successfully",
+					"msg": "Data is already present in DB, please use UPDATE to change data",
 					"data":{
-							"id": movie_obj.id,
-							"name": movie_obj.name,
-							"description": movie_obj.description,
-							"date of release": str(movie_obj.date_of_release)
-						}				
+						"id": c_movie.id,
+						"name": c_movie.name,
+						"description": c_movie.description,
+						"date of release": str(c_movie.date_of_release)
+					}
 				}
-				status = 201
+				status = 409
 
-			except:
-				response = {
-					"msg": "Something went wrong",
-					"data": None
-				}
-				status = 400
+			else:
+				c_movie = MovieContainer(name=name, description=description, date_of_release=dor)
+				try:
+					c_movie.save()
+					movie_obj = MovieContainer.objects.get(id=c_movie.id)
+					# response.success('message', data. 200)
+					response = {
+						"msg": "Created successfully",
+						"data":{
+								"id": movie_obj.id,
+								"name": movie_obj.name,
+								"description": movie_obj.description,
+								"date of release": str(movie_obj.date_of_release)
+							}				
+					}
+					status = 201
+
+				except:
+					response = {
+						"msg": "Something went wrong",
+						"data": None
+					}
+					status = 400
+		else:
+			response = {
+				"msg": v_msg,
+				"data": None
+			}
+			status = 422
 
 	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
 
@@ -76,6 +85,7 @@ def getMovie(request, id=None):
 						"name": obj.name
 					}
 					data.append(d)
+					print("DATE:: ", obj.date_of_release)
 				msg = "All data is extracted"
 				status = 200
 			else:
@@ -154,10 +164,6 @@ def updateMovie(request, id):
 def deleteMovie(request, id=id):
 	response = {}
 	if request.method == 'DELETE':
-		# movies = json.loads(request.body)
-
-		# id = movies['id']
-
 		try:
 			movie_obj = MovieContainer.objects.get(id=id)
 			response = {
@@ -175,12 +181,13 @@ def deleteMovie(request, id=id):
 				"msg": f"Data is not present with id: {id}",
 				"data": None
 			}
-			status
+			status = 404
 
 		except:
 			response = {
 				"msg": "Something went wrong, id not found",
 				"data": None
 			}
+			status = 400
 
 	return HttpResponse(json.dumps(response), content_type='text/json')
