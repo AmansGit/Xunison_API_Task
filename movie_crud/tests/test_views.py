@@ -21,39 +21,39 @@ class MoviePostViewsTestCase(TestCase):
 
 	def test_create_movie(self):
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("create-new-movie status_code", response.status_code)
+		print("test_create_movie -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 201)
 
 
 	def test_create_movie_without_name(self):
 		del self.request_body['name']
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("test_create_movie_without_name status_code", response.status_code)
+		print("test_create_movie_without_name -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 422)
 
 	def test_create_movie_name_is_none(self):
 		self.request_body['name'] = None
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("test_create_movie_name_is_none status_code", response.status_code)
+		print("test_create_movie_name_is_none -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 422)
 
 
 	def test_create_movie_without_description(self):
 		del self.request_body['description']
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("test_create_movie_without_description status_code", response.status_code)
+		print("test_create_movie_without_description -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 201)
 
 	def test_create_movie_without_release_date(self):
 		del self.request_body['date_of_release']
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("test_create_movie_without_release_date status_code", response.status_code)
+		print("test_create_movie_without_release_date -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 422)
 
 	def test_create_movie_release_date_is_empty(self):
 		self.request_body['date_of_release'] = ""
 		response = self.c.post(self.createMovie, data=json.dumps(self.request_body), content_type='text/json')
-		print("test_create_movie_release_date_is_empty status_code", response.status_code)
+		print("test_create_movie_release_date_is_empty -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 422)
 
 
@@ -67,13 +67,14 @@ class MovieGetViewsTestCase(TestCase):
 		movie_obj = MovieContainer.objects.create(name="The Mummy", description="This is a Horror movie", date_of_release=datetime.strptime("2020-12-03", '%Y-%m-%d'))
 		self.getMovie = reverse('getMovie', kwargs={'id': movie_obj.id})
 		response = self.c.get(self.getMovie)
+		print("test_get_movie_by_id -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 200)
 
 	def test_get_movie_by_unknown_id(self):
 		# movie_obj = MovieContainer.objects.create(name="The Mummy", description="This is a Horror movie", date_of_release=datetime.strptime("2020-12-03", '%Y-%m-%d'))
 		self.getMovie = reverse('getMovie', kwargs={'id': 12})
 		response = self.c.get(self.getMovie)
-		print("test_get_movie_by_unknown_id status_code: ", response.status_code)
+		print("test_get_movie_by_unknown_id -> status_code: ", response.status_code)
 		self.assertEqual(response.status_code, 404)
 		
 class MovieUpdateViewsTestCase(TestCase):
@@ -90,6 +91,8 @@ class MovieUpdateViewsTestCase(TestCase):
 		}
 		response = self.c.put(self.updateMovie, data=json.dumps(request_body), content_type='text/json')
 		self.assertEqual(response.status_code, 200)
+		print("test_update_movie_name_by_id -> status_code", response.status_code)
+
 		# checkout the updated data
 		movie_obj_2 = MovieContainer.objects.get(id=self.movie_obj.id)
 		self.assertEqual(movie_obj_2.name, request_body['name'])
@@ -100,6 +103,8 @@ class MovieUpdateViewsTestCase(TestCase):
 		}
 		response = self.c.put(self.updateMovie, data=json.dumps(request_body), content_type='text/json')
 		self.assertEqual(response.status_code, 200)
+		print("test_update_movie_description_by_id -> status_code", response.status_code)
+
 		# checkout the updated data
 		movie_obj_2 = MovieContainer.objects.get(id=self.movie_obj.id)
 		self.assertEqual(movie_obj_2.description, request_body['description'])
@@ -114,6 +119,8 @@ class MovieUpdateViewsTestCase(TestCase):
 		self.assertEqual(response.status_code, 200)
 		# checkout the updated data
 		movie_obj_2 = MovieContainer.objects.get(id=self.movie_obj.id)
+		print("test_update_movie_detail_by_id -> status_code", response.status_code)
+
 		self.assertEqual(movie_obj_2.name, request_body['name'])
 		self.assertEqual(movie_obj_2.description, request_body['description'])
 		self.assertEqual(str(movie_obj_2.date_of_release), request_body['date_of_release'])
@@ -122,6 +129,8 @@ class MovieUpdateViewsTestCase(TestCase):
 		request_body = {}
 		response = self.c.put(self.updateMovie, data=json.dumps(request_body), content_type='text/json')
 		self.assertEqual(response.status_code, 200)
+		print("test_update_movie_by_id -> status_code", response.status_code)
+
 		# checkout the updated data
 		movie_obj_2 = MovieContainer.objects.get(id=self.movie_obj.id)
 		self.assertEqual(self.movie_obj, movie_obj_2)
@@ -135,7 +144,7 @@ class MovieDViewsTestCase(TestCase):
 
 	def test_delete_movie_by_id(self):
 		response = self.c.delete(self.deleteMovie)
-		print("test_delete_movie_by_id status_code", response.status_code)
+		print("test_delete_movie_by_id -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 204)
 		movie_obj_2 = None
 		try:
@@ -144,8 +153,8 @@ class MovieDViewsTestCase(TestCase):
 			pass
 		self.assertEqual(movie_obj_2, None)
 
-	def test_delete_movie_by_unknow_id(self):
+	def test_delete_movie_by_unknown_id(self):
 		self.deleteMovie = reverse('deleteMovie', kwargs={'id': 12})
 		response = self.c.delete(self.deleteMovie)
-		print("test_delete_movie_by_unknow_id status_code", response.status_code)
+		print("test_delete_movie_by_unknown_id -> status_code", response.status_code)
 		self.assertEqual(response.status_code, 404)

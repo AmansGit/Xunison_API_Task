@@ -16,6 +16,7 @@ class MovieContainerTestCase1(TestCase):
 
 	def test_get_movie_with_id_pass(self):
 		movie_obj = MovieContainer.objects.get(id=1)
+		print("test_get_movie_with_id_pass...")
 		self.assertEqual(movie_obj.name, "The Mummy")
 		self.assertTrue(movie_obj.description, "This is a Horror movie")
 
@@ -26,15 +27,18 @@ class MovieContainerTestCase1(TestCase):
 	# ---- 3 records are there in default db
 	def test_get_movies_details(self):
 		movie_obj = MovieContainer.objects.all()
+		print("test_get_movies_details...")
 		self.assertEqual(movie_obj.count(), 3)
 
 	
 	def test_update_movies_with_id(self):
 		MovieContainer.objects.filter(id=1).update(name="Mummy horror movie", description="Horror movie")
+		print("test_update_movies_with_id...")
 		self.assertTrue(True, "this is false?")
 
 
 	def test_delete_movie_with_id(self):
 		movie_obj = MovieContainer.objects.get(id=1)
 		movie_obj.delete()
+		print("test_delete_movie_with_id...")
 		self.assertTrue(True, "not deleted")
