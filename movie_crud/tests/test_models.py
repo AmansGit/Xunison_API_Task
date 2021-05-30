@@ -4,7 +4,7 @@ from movie_crud.models import MovieContainer
 
 from datetime import datetime
 
-class MovieContainerTestCase(TestCase):
+class MovieContainerTestCase1(TestCase):
 	def setUp(self):
 		dor1 = datetime.strptime("2020-12-03", '%Y-%m-%d')
 		dor2 = datetime.strptime("2021-05-14", '%Y-%m-%d')
@@ -23,7 +23,7 @@ class MovieContainerTestCase(TestCase):
 	# 	movie_obj = MovieContainer.objects.get(id=4)
 	# 	self.assertFalse(False)
 	
-# ---- 3 records are there in default db
+	# ---- 3 records are there in default db
 	def test_get_movies_details(self):
 		movie_obj = MovieContainer.objects.all()
 		self.assertEqual(movie_obj.count(), 3)

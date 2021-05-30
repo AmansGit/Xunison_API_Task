@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 
 from .models import MovieContainer
-from .validations import key_validation
+from .validations import movie_request_validation
 
 @csrf_exempt
 def createNewMovie(request):
@@ -15,12 +15,12 @@ def createNewMovie(request):
 	if request.method=='POST':
 		v_status = True
 		v_msg = ""
-		v_status, v_msg = key_validation(json.loads(request.body))
+		v_status, v_msg = movie_request_validation(json.loads(request.body))
 
 		if v_status:
 			movies = json.loads(request.body)
 			name = movies['name']
-			description = movies['description']
+			description = ('description' in movies and movies['description']) or None
 			dor = datetime.strptime(movies['date_of_release'], '%Y-%m-%d')
 
 		# ---------- filter-out duplicate data on the basis of movie name ---------------
@@ -29,12 +29,7 @@ def createNewMovie(request):
 				id = c_movie.id
 				response = {
 					"msg": "Data is already present in DB, please use UPDATE to change data",
-					"data":{
-						"id": c_movie.id,
-						"name": c_movie.name,
-						"description": c_movie.description,
-						"date of release": str(c_movie.date_of_release)
-					}
+					"data": c_movie.toJson()
 				}
 				status = 409
 
@@ -43,15 +38,9 @@ def createNewMovie(request):
 				try:
 					c_movie.save()
 					movie_obj = MovieContainer.objects.get(id=c_movie.id)
-					# response.success('message', data. 200)
 					response = {
 						"msg": "Created successfully",
-						"data":{
-								"id": movie_obj.id,
-								"name": movie_obj.name,
-								"description": movie_obj.description,
-								"date of release": str(movie_obj.date_of_release)
-							}				
+						"data": movie_obj.toJson()
 					}
 					status = 201
 
@@ -68,7 +57,7 @@ def createNewMovie(request):
 			}
 			status = 422
 
-	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
+		return HttpResponse(json.dumps(response), content_type='text/json', status=status)
 
 
 def getMovie(request, id=None):
@@ -80,21 +69,13 @@ def getMovie(request, id=None):
 			if id == None:
 				movie_obj = MovieContainer.objects.all()
 				for obj in movie_obj:
-					d = {
-						"id": obj.id,
-						"name": obj.name
-					}
+					d = obj.toJson()
 					data.append(d)
-					print("DATE:: ", obj.date_of_release)
 				msg = "All data is extracted"
 				status = 200
 			else:
 				movie_obj = MovieContainer.objects.get(id=id)
-				print("OBJ:: ", movie_obj)
-				data = {
-					"id": movie_obj.id,
-					"name": movie_obj.name
-				}
+				data = movie_obj.toJson()
 				msg = "One data is extracted"
 				status = 200
 
@@ -122,27 +103,30 @@ def updateMovie(request, id):
 	if request.method=='PUT':
 
 		movies = json.loads(request.body)
-		# id = movies['id']
-		name = movies['name']
-		description = movies['description']
-		dor = movies['date_of_release']
+		name = 'name' in movies and movies['name'] or None
+		description = 'description' in movies and movies['description'] or None
+		dor = 'date_of_release' in movies and movies['date_of_release'] or None
 		try:
 			movie_obj = MovieContainer.objects.get(id=id)
-			movie_obj.name = name
-			movie_obj.description = description
-			movie_obj.date_of_release = dor
-			movie_obj.save()
-
-			# MovieContainer(name=name, description=description, date_of_release=dor)
-
-			response = {
-				"msg": "Successfully updated",
-				"data":{
-					"id": movie_obj.id,
-					"name": movie_obj.name
+			if(not name and not description and not dor):
+				response = {
+					"msg": "No value to update",
+					"data": movie_obj.toJson()
 				}
-			}
-			status = 201
+			else:
+				if(name):
+					movie_obj.name = name
+				if(description):
+					movie_obj.description = description
+				if(dor):
+					movie_obj.date_of_release = dor
+				movie_obj.save()
+
+				response = {
+					"msg": "Successfully updated",
+					"data": movie_obj.toJson()
+				}
+			status = 200
 
 		except ObjectDoesNotExist:
 			response = {
@@ -168,13 +152,10 @@ def deleteMovie(request, id=id):
 			movie_obj = MovieContainer.objects.get(id=id)
 			response = {
 				"msg": "Successfully delete",
-				"data": {
-					"id": movie_obj.id,
-					"name": movie_obj.name
-				}
+				"data": movie_obj.toJson()
 			}
 			movie_obj.delete()
-			status = 410
+			status = 204
 
 		except ObjectDoesNotExist:
 			response = {
@@ -189,5 +170,4 @@ def deleteMovie(request, id=id):
 				"data": None
 			}
 			status = 400
-
-	return HttpResponse(json.dumps(response), content_type='text/json')
+	return HttpResponse(json.dumps(response), content_type='text/json', status=status)
