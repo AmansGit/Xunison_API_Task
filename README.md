@@ -20,7 +20,8 @@ Create Movie details with CRUD operations.
 #### To check the server running
 Go to the file where manage.py is present
 ```sh
-
+ >>> python manage.py makemigrations movie_crud
+ >>> python manage.py migrate
  >>> python manage.py runserver
 ```
 ## Test cases
